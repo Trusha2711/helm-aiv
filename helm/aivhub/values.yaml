@@ -79,7 +79,7 @@
 
 # # tolerations: []
 selfHosted:
-  enabled: true
+  enabled: false
 awsHosted:
   enabled: false
   efs:
@@ -87,9 +87,9 @@ awsHosted:
 azureHosted:
   enabled: false
 googleHosted:
-  enabled: false
+  enabled: true
   nfs:
-    server: nfs-server.default.svc.cluster.local
+    server: nfs-server
     path: "/"
 imagePullSecrets: 
   - name: myregistrykey
