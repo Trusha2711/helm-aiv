@@ -1,0 +1,15 @@
+{{- if .Values.awsHosted.enabled }}
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  namespace: {{ .Release.Namespace }}
+  name: {{ template "aivhub.fullname" . }}-pvc-logs
+spec:
+  storageClassName: {{ .Values.storageClass }}
+  volumeName: {{ template "aivhub.fullname" . }}-pv-logs
+  accessModes:
+    - {{ .Values.logs.persistence.accessMode }}
+  resources:
+    requests:
+      storage: {{ .Values.logs.persistence.storageSize }}
+{{- end -}}

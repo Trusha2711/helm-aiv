@@ -1,0 +1,26 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: {{ template "aivhub.fullname" . }}-sql-script-aiv5
+  namespace: {{ .Release.Namespace }}
+  annotations:
+    "helm.sh/hook": pre-install
+    "helm.sh/hook-weight": "-1"
+spec:
+  template:
+    spec:
+      containers:
+      - name: postgres-client
+        image: postgres:latest
+        command: ["/bin/sh"]
+        args:
+        - "-c"
+        - "PGPASSWORD={{ .Values.postgres.Password }} psql -h {{ template "aivhub.fullname" . }}-metadata.{{ .Release.Namespace }}.svc.cluster.local -U {{ .Values.postgres.User }} -d aiv5 -f /scripts/aiv5/aiv5.sql"
+        volumeMounts:
+        - name: pg-aiv5-script
+          mountPath: /scripts/aiv5
+      restartPolicy: Never
+      volumes:
+      - name: pg-aiv5-script
+        configMap:
+          name: {{ template "aivhub.fullname" . }}-aiv5-script

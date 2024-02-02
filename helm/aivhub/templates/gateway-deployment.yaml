@@ -1,0 +1,93 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app: {{ template "aivhub.fullname" . }}-gateway
+  name: {{ template "aivhub.fullname" . }}-gateway
+  namespace: {{ .Release.Namespace }}
+spec:
+  replicas: {{ .Values.gateway.replicaCount }}
+  selector:
+    matchLabels:
+      app: {{ template "aivhub.fullname" . }}-gateway
+  template:
+    metadata:
+      labels:
+        app: {{ template "aivhub.fullname" . }}-gateway
+    spec:
+      {{- with .Values.nodeSelector }}
+      nodeSelector: {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- if .Values.affinity }}
+      affinity:
+        {{- with .Values.affinity }}
+          {{- toYaml . | nindent 8 }}
+        {{- end }}
+      {{- end }}
+      {{- if .Values.imagePullSecrets }}
+      imagePullSecrets: {{- toYaml .Values.imagePullSecrets | nindent 8 }}
+      {{- end }}
+      containers:
+        - env:
+            - name: AIV_BIRT
+              value: http://{{ template "aivhub.fullname" . }}-aivbirt.{{ .Release.Namespace }}:9990
+            - name: AIV_CORE
+              value: http://{{ template "aivhub.fullname" . }}-core.{{ .Release.Namespace }}:9998
+            - name: AIV_DATA
+              value: http://{{ template "aivhub.fullname" . }}-aivdata.{{ .Release.Namespace }}:9013
+            - name: AIV_FRONT_SECURITY
+              value: "{{ if .Values.aivsecuritykeycloak.enabled }}https://{{ .Values.aivsecuritykeycloak.ingress.host }}{{ else }}https://{{ .Values.aivsecuritypostgres.ingress.host }}{{ end }}"
+            - name: AIV_GATEWAY
+              value: https://{{ .Values.gateway.ingress.host }}
+            - name: AIV_JASPER
+              value: http://{{ template "aivhub.fullname" . }}-aivjasper.{{ .Release.Namespace }}:9996
+            - name: AIV_PENTAHO
+              value: http://{{ template "aivhub.fullname" . }}-aivpentaho.{{ .Release.Namespace }}:9994
+            - name: AIV_SECURITY
+              value: "{{ if .Values.aivsecuritykeycloak.enabled }}https://{{ .Values.aivsecuritykeycloak.ingress.host }}{{ else }}https://{{ .Values.aivsecuritypostgres.ingress.host }}{{ end }}"
+            - name: SPRING_DATASOURCE_PASSWORD
+              value: "{{ .Values.postgres.Password }}"
+            - name: SPRING_DATASOURCE_URL
+              value: jdbc:postgresql://{{ template "aivhub.fullname" . }}-metadata.{{ .Release.Namespace }}:5432/aiv5
+            - name: SPRING_DATASOURCE_USERNAME
+              value: "{{ .Values.postgres.User }}"
+            - name: SPRING_PROFILES_ACTIVE
+              value: prod
+          image: jits023/aiv:{{ .Values.gateway.image.tag }}
+          imagePullPolicy: {{ .Values.gateway.image.pullPolicy }}
+          name: {{ .Chart.Name }}-gateway
+          ports:
+            - name: http
+              containerPort: 9001
+          resources: 
+            {{- if .Values.gateway.resources }}
+              {{- toYaml .Values.gateway.resources | nindent 12 }}
+            {{- else }}
+              {{- toYaml .Values.resources | nindent 12 }}
+            {{- end }}
+          volumeMounts:
+            - mountPath: /opt/repository
+              name:  repository
+            - mountPath: /opt/logs
+              name: logs
+      initContainers:
+        - name: init-downloader
+          image: amazon/aws-cli:latest
+          command: ['sh', '-c', "aws s3 sync s3://{{ .Values.s3BucketRepository }}/repository/ /opt/repository"]
+          env:
+          - name: AWS_ACCESS_KEY_ID
+            value: {{ .Values.aws.accessKey }}
+          - name: AWS_SECRET_ACCESS_KEY
+            value: {{ .Values.aws.secretKey }}
+          - name: AWS_REGION
+            value: {{ .Values.aws.region }}
+          volumeMounts:
+            - mountPath: /opt/repository
+              name: repository
+      volumes:
+        - name: repository
+          persistentVolumeClaim:
+            claimName: {{ template "aivhub.fullname" . }}-pvc-repository
+        - name: logs
+          persistentVolumeClaim:
+            claimName: {{ template "aivhub.fullname" . }}-pvc-logs

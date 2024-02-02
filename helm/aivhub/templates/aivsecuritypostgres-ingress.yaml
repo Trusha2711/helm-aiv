@@ -1,0 +1,31 @@
+{{- if .Values.aivsecuritypostgres.enabled }}
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  namespace: {{ .Release.Namespace }}
+  name: {{ template "aivhub.fullname" . }}-aivsecuritydb
+  labels:
+    app: {{ template "aivhub.fullname" . }}-aivsecuritydb
+  {{- with .Values.ingress.annotations }}
+  annotations: {{- toYaml . | nindent 4 }}
+  {{- end }}
+spec:
+  {{- if .Values.ingress.ingressClassName }}
+  ingressClassName: {{ .Values.ingress.ingressClassName }}
+  {{- end }}
+  rules:
+  - host: {{ .Values.aivsecuritypostgres.ingress.host }}
+    http:
+      paths:
+      - path: {{ .Values.aivsecuritypostgres.ingress.path }}
+        pathType: {{ .Values.aivsecuritypostgres.ingress.pathType }}
+        backend:
+          service:
+            name: {{ template "aivhub.fullname" . }}-aivsecuritydb
+            port:
+              number: 9000
+  tls:
+  - hosts:
+    - '{{ .Values.aivsecuritypostgres.ingress.host }}'
+    secretName: {{ .Values.aivsecuritypostgres.ingress.secretName }}
+{{- end -}}

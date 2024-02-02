@@ -1,0 +1,22 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: {{ template "aivhub.fullname" . }}-run-sql-script-demo
+  namespace: {{ .Release.Namespace }}
+  annotations:
+    "helm.sh/hook": pre-install
+    "helm.sh/hook-weight": "0"
+spec:
+  template:
+    spec:
+      {{- if .Values.imagePullSecrets }}
+      imagePullSecrets: {{- toYaml .Values.imagePullSecrets | nindent 8 }}
+      {{- end }}
+      containers:
+      - name: postgres-client
+        image: jits023/aivhub-postgres:latest
+        command: ["/bin/sh"]
+        args:
+        - "-c"
+        - "PGPASSWORD={{ .Values.postgres.Password }} psql -h {{ template "aivhub.fullname" . }}-metadata.{{ .Release.Namespace }}.svc.cluster.local -U {{ .Values.postgres.User }} -d aiv_security -f ./Products.sql"
+      restartPolicy: Never

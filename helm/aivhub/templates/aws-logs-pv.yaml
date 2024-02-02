@@ -1,0 +1,18 @@
+{{- if .Values.awsHosted.enabled }}
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  namespace: {{ .Release.Namespace }}
+  name: {{ template "aivhub.fullname" . }}-pv-logs
+spec:
+  capacity:
+    storage: {{ .Values.logs.persistence.storageSize }}
+  volumeMode: Filesystem
+  accessModes:
+    - {{ .Values.logs.persistence.accessMode }}
+  persistentVolumeReclaimPolicy: Retain
+  storageClassName: {{ .Values.storageClass }}
+  csi:
+    driver: efs.csi.aws.com
+    volumeHandle: {{ .Values.awsHosted.efs.id }}
+{{- end -}}

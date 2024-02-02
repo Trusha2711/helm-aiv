@@ -1,0 +1,15 @@
+{{- if .Values.googleHosted.enabled }}
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  namespace: {{ .Release.Namespace }}
+  name: {{ template "aivhub.fullname" . }}-pv-logs
+spec:
+  capacity:
+    storage: {{ .Values.logs.persistence.storageSize }}
+  accessModes:
+    - {{ .Values.logs.persistence.accessMode }}
+  nfs:
+    server: {{ .Values.googleHosted.nfs.server }}
+    path: {{ .Values.googleHosted.nfs.path }}
+{{- end -}}

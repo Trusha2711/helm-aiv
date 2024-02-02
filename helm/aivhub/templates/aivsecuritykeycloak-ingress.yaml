@@ -1,0 +1,31 @@
+{{- if .Values.aivsecuritykeycloak.enabled }}
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  namespace: {{ .Release.Namespace }}
+  name: {{ template "aivhub.fullname" . }}-security
+  labels:
+    app: {{ template "aivhub.fullname" . }}-security
+  {{- with .Values.ingress.annotations }}
+  annotations: {{- toYaml . | nindent 4 }}
+  {{- end }}
+spec:
+  {{- if .Values.ingress.ingressClassName }}
+  ingressClassName: {{ .Values.ingress.ingressClassName }}
+  {{- end }}
+  rules:
+  - host: {{ .Values.aivsecuritykeycloak.ingress.host }}
+    http:
+      paths:
+      - path: {{ .Values.aivsecuritykeycloak.ingress.path }}
+        pathType: {{ .Values.aivsecuritykeycloak.ingress.pathType }}
+        backend:
+          service:
+            name: {{ template "aivhub.fullname" . }}-aivkeycloak
+            port:
+              number: 9000
+  tls:
+  - hosts:
+    - '{{ .Values.aivsecuritykeycloak.ingress.host }}'
+    secretName: {{ .Values.aivsecuritykeycloak.ingress.secretName }}
+{{- end -}}

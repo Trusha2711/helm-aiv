@@ -1,0 +1,29 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  namespace: {{ .Release.Namespace }}
+  name: {{ template "aivhub.fullname" . }}-gateway
+  labels:
+    app: {{ template "aivhub.fullname" . }}-gateway
+  {{- with .Values.ingress.annotations }}
+  annotations: {{- toYaml . | nindent 4 }}
+  {{- end }}
+spec:
+  {{- if .Values.ingress.ingressClassName }}
+  ingressClassName: {{ .Values.ingress.ingressClassName }}
+  {{- end }}
+  rules:
+  - host: {{ .Values.gateway.ingress.host }}
+    http:
+      paths:
+      - path: {{ .Values.gateway.ingress.path }}
+        pathType: {{ .Values.gateway.ingress.pathType }}
+        backend:
+          service:
+            name: {{ template "aivhub.fullname" . }}-gateway
+            port:
+              number: 9001
+  tls:
+  - hosts:
+    - '{{ .Values.gateway.ingress.host }}'
+    secretName: {{ .Values.gateway.ingress.secretName }}

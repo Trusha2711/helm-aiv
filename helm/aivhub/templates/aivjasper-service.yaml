@@ -1,0 +1,15 @@
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    app: {{ template "aivhub.fullname" . }}-aivjasper
+  name: {{ template "aivhub.fullname" . }}-aivjasper
+  namespace: {{ .Release.Namespace }}
+spec:
+  type: {{ .Values.aivjasper.service.type }}
+  ports:
+    - name: http
+      port: 9996
+      targetPort: 9996
+  selector:
+    app: {{ template "aivhub.fullname" . }}-aivjasper

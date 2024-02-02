@@ -1,0 +1,26 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: {{ template "aivhub.fullname" . }}-sql-script-aivsecurity
+  namespace: {{ .Release.Namespace }}
+  annotations:
+    "helm.sh/hook": pre-install
+    "helm.sh/hook-weight": "-2"
+spec:
+  template:
+    spec:
+      containers:
+      - name: postgres-client
+        image: postgres:latest
+        command: ["/bin/sh"]
+        args:
+        - "-c"
+        - "PGPASSWORD={{ .Values.postgres.Password }} psql -h {{ template "aivhub.fullname" . }}-metadata.{{ .Release.Namespace }}.svc.cluster.local -U {{ .Values.postgres.User }} -d aiv_security -f /scripts/aiv-security/aiv-security.sql"
+        volumeMounts:
+        - name: pg-aiv-security-script
+          mountPath: /scripts/aiv-security
+      restartPolicy: Never
+      volumes:
+      - name: pg-aiv-security-script
+        configMap:
+          name: {{ template "aivhub.fullname" . }}-aiv-security-script

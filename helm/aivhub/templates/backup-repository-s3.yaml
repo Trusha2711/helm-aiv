@@ -1,0 +1,33 @@
+{{- if .Values.backup.enabled }}
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: {{ template "aivhub.fullname" . }}-repository-backup
+  namespace: {{ .Release.Namespace }}
+spec:
+  schedule: {{ .Values.backup.schedule | quote  }}
+  jobTemplate:
+    spec:
+      backoffLimit: 0
+      template:
+        spec:
+          containers:
+            - name: save
+              image: amazon/aws-cli:latest
+              volumeMounts:
+                - mountPath: /opt/repository
+                  name: repository
+              command: ['sh', '-c', "aws s3 sync /opt/repository/ s3://{{ .Values.backup.aws.s3BucketName }}/repository-backup/"]
+              env:
+                - name: AWS_ACCESS_KEY_ID
+                  value: {{ .Values.aws.accessKey }}
+                - name: AWS_SECRET_ACCESS_KEY
+                  value: {{ .Values.aws.secretKey }}
+                - name: AWS_DEFAULT_REGION
+                  value: {{ .Values.aws.region }}
+          restartPolicy: Never
+          volumes:
+            - name: repository
+              persistentVolumeClaim:
+                claimName: {{ template "aivhub.fullname" . }}-pvc-repository
+{{- end -}}

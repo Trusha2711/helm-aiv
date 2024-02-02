@@ -1,0 +1,83 @@
+{{- if .Values.aivsecuritypostgres.enabled }}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app: {{ template "aivhub.fullname" . }}-aivsecuritydb
+  name: {{ template "aivhub.fullname" . }}-aivsecuritydb
+  namespace: {{ .Release.Namespace }} 
+spec:
+  replicas: {{ .Values.aivsecuritypostgres.replicaCount }}
+  selector:
+    matchLabels:
+      app: {{ template "aivhub.fullname" . }}-aivsecuritydb
+  template:
+    metadata:
+      labels:
+        app: {{ template "aivhub.fullname" . }}-aivsecuritydb
+    spec:
+      {{- with .Values.nodeSelector }}
+      nodeSelector: {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- if .Values.affinity }}
+      affinity:
+        {{- with .Values.affinity }}
+          {{- toYaml . | nindent 8 }}
+        {{- end }}
+      {{- end }}
+      {{- if .Values.imagePullSecrets }}
+      imagePullSecrets: {{- toYaml .Values.imagePullSecrets | nindent 8 }}
+      {{- end }}
+      containers:
+        - env:
+            - name: AIV_GATEWAY
+              value: https://{{ .Values.gateway.ingress.host }}/aiv
+            - name: AIV_FRONT_GATEWAY
+              value: https://{{ .Values.gateway.ingress.host }}/aiv
+            - name: SPRING_PROFILES_ACTIVE
+              value: prod
+            - name: SPRING_DATASOURCE_PASSWORD
+              value: "{{ .Values.postgres.Password }}"
+            - name: SPRING_DATASOURCE_URL
+              value: jdbc:postgresql://{{ template "aivhub.fullname" . }}-metadata.{{ .Release.Namespace }}:5432/aiv_security?currentSchema=security
+            - name: SPRING_DATASOURCE_USERNAME
+              value: "{{ .Values.postgres.User }}"
+          image: jits023/aiv:{{ .Values.aivsecuritypostgres.image.tag }}
+          imagePullPolicy: {{ .Values.aivsecuritypostgres.image.pullPolicy }}
+          name: {{ .Chart.Name }}-aivsecuritydb
+          ports:
+            - containerPort: 9000
+          resources: 
+            {{- if .Values.aivsecuritypostgres.resources }}
+              {{- toYaml .Values.aivsecuritypostgres.resources | nindent 12 }}
+            {{- else }}
+              {{- toYaml .Values.resources | nindent 12 }}
+            {{- end }}
+          volumeMounts:
+            - mountPath: /opt/repository
+              name: repository
+            - mountPath: /opt/logs
+              name: logs
+      initContainers:
+        - name: init-downloader
+          image: amazon/aws-cli:latest
+          command: ['sh', '-c', "aws s3 sync s3://{{ .Values.s3BucketRepository }}/repository/ /opt/repository"]
+          env:
+          - name: AWS_ACCESS_KEY_ID
+            value: {{ .Values.aws.accessKey }}
+          - name: AWS_SECRET_ACCESS_KEY
+            value: {{ .Values.aws.secretKey }}
+          - name: AWS_REGION
+            value: {{ .Values.aws.region }}
+          volumeMounts:
+            - mountPath: /opt/repository
+              name: repository
+      restartPolicy: Always
+      volumes:
+        - name: repository
+          persistentVolumeClaim:
+            claimName: {{ template "aivhub.fullname" . }}-pvc-repository
+        - name: logs
+          persistentVolumeClaim:
+            claimName: {{ template "aivhub.fullname" . }}-pvc-logs
+{{- end -}}

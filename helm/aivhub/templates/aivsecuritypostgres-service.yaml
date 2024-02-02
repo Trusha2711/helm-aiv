@@ -1,0 +1,17 @@
+{{- if .Values.aivsecuritypostgres.enabled }}
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    app: {{ template "aivhub.fullname" . }}-aivsecuritydb
+  name: {{ template "aivhub.fullname" . }}-aivsecuritydb
+  namespace: {{ .Release.Namespace }}
+spec:
+  type: {{ .Values.aivsecuritypostgres.service.type }}
+  ports:
+    - name: http
+      port: 9000
+      targetPort: 9000
+  selector:
+    app: {{ template "aivhub.fullname" . }}-aivsecuritydb
+{{- end -}}

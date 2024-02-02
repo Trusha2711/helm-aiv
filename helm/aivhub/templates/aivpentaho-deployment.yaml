@@ -1,0 +1,90 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app: {{ template "aivhub.fullname" . }}-aivpentaho
+  name: {{ template "aivhub.fullname" . }}-aivpentaho
+  namespace: {{ .Release.Namespace }}
+spec:
+  replicas: {{ .Values.aivpentaho.replicaCount }}
+  selector:
+    matchLabels:
+      app: {{ template "aivhub.fullname" . }}-aivpentaho
+  strategy:
+    type: Recreate
+  template:
+    metadata:
+      labels:
+        app: {{ template "aivhub.fullname" . }}-aivpentaho
+        test: db
+    spec:
+      {{- with .Values.nodeSelector }}
+      nodeSelector: {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- if .Values.affinity }}
+      affinity:
+        {{- with .Values.affinity }}
+          {{- toYaml . | nindent 8 }}
+        {{- end }}
+      {{- end }}
+      {{- if .Values.imagePullSecrets }}
+      imagePullSecrets: {{- toYaml .Values.imagePullSecrets | nindent 8 }}
+      {{- end }}
+      containers:
+        - env:
+            - name: AIV_CORE
+              value: http://{{ template "aivhub.fullname" . }}-core.{{ .Release.Namespace }}:9998
+            - name: SPRING_DATASOURCE_PASSWORD
+              value: "{{ .Values.postgres.Password }}"
+            - name: SPRING_DATASOURCE_URL
+              value: jdbc:postgresql://{{ template "aivhub.fullname" . }}-metadata.{{ .Release.Namespace }}:5432/aiv5
+            - name: SPRING_DATASOURCE_USERNAME
+              value: "{{ .Values.postgres.User }}"
+            - name: CLASSICMODEL_DS_URL
+              value: jdbc:mysql://aws.connect.psdb.cloud:3306/classicmodels
+            - name: CLASSICMODEL_PASSWORD
+              value: pscale_pw_6i5m9HTsVXCiNnQoXtyFuVPu8AJ6W4DsJ1WvLRa0Bew
+            - name: CLASSICMODEL_USERNAME
+              value: g4cbf7tym07m0agzzg4r
+            - name: SPRING_PROFILES_ACTIVE
+              value: prod
+          image: jits023/aiv:{{ .Values.aivpentaho.image.tag }}
+          imagePullPolicy: {{ .Values.aivpentaho.image.pullPolicy }}
+          name: {{ .Chart.Name }}-aivpentaho
+          ports:
+            - name: http
+              containerPort: 9994
+          resources: 
+            {{- if .Values.aivpentaho.resources }}
+              {{- toYaml .Values.aivpentaho.resources | nindent 12 }}
+            {{- else }}
+              {{- toYaml .Values.resources | nindent 12 }}
+            {{- end }}
+          volumeMounts:
+            - mountPath: /opt/repository
+              name: repository-ps
+              readOnly: false
+            - mountPath: /opt/logs
+              name: logs-ps
+              readOnly: false
+      initContainers:
+        - name: init-downloader
+          image: amazon/aws-cli:latest
+          command: ['sh', '-c', "aws s3 sync s3://{{ .Values.s3BucketRepository }}/repository/ /opt/repository"]
+          env:
+          - name: AWS_ACCESS_KEY_ID
+            value: {{ .Values.aws.accessKey }}
+          - name: AWS_SECRET_ACCESS_KEY
+            value: {{ .Values.aws.secretKey }}
+          - name: AWS_REGION
+            value: {{ .Values.aws.region }}
+          volumeMounts:
+            - mountPath: /opt/repository
+              name: repository-ps
+      volumes:
+        - name: repository-ps
+          persistentVolumeClaim:
+            claimName: {{ template "aivhub.fullname" . }}-pvc-repository
+        - name: logs-ps
+          persistentVolumeClaim:
+            claimName: {{ template "aivhub.fullname" . }}-pvc-logs

@@ -1,0 +1,42 @@
+{{- if .Values.backup.enabled }}
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: {{ template "aivhub.fullname" . }}-postgres-backup
+  namespace: {{ .Release.Namespace }}
+spec:
+  schedule: {{ .Values.backup.schedule | quote }}
+  jobTemplate:
+    spec:
+      backoffLimit: 0
+      template:
+        spec:
+          initContainers:
+            - name: dump
+              image: postgres:latest
+              volumeMounts:
+                - name: data
+                  mountPath: /backup
+              command: ["/bin/sh"]
+              args:
+                - "-c"
+                - "PGPASSWORD={{ .Values.postgres.Password }} pg_dumpall -h {{ template "aivhub.fullname" . }}-metadata.{{ .Release.Namespace }}.svc.cluster.local -U {{ .Values.postgres.User }} > /backup/metadata-postgres.pgdump"
+          containers:
+            - name: save
+              image: mesosphere/aws-cli
+              volumeMounts:
+                - name: data
+                  mountPath: /backup
+              command: ['sh', '-c', "aws s3 sync /backup/ s3://{{ .Values.backup.aws.s3BucketName }}/metadata/"]
+              env:
+                - name: AWS_ACCESS_KEY_ID
+                  value: {{ .Values.aws.accessKey }}
+                - name: AWS_SECRET_ACCESS_KEY
+                  value: {{ .Values.aws.secretKey }}
+                - name: AWS_DEFAULT_REGION
+                  value: {{ .Values.aws.region }}
+          restartPolicy: Never
+          volumes:
+            - name: data
+              emptyDir: {}
+{{- end -}}

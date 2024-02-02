@@ -1,0 +1,270 @@
+# # Default values for aivhub.
+# # This is a YAML-formatted file.
+# # Declare variables to be passed into your templates.
+
+# replicaCount: 1
+
+# image:
+#   repository: nginx
+#   pullPolicy: IfNotPresent
+#   # Overrides the image tag whose default is the chart appVersion.
+#   tag: ""
+
+# imagePullSecrets: []
+# nameOverride: ""
+# fullnameOverride: ""
+
+# # serviceAccount:
+# #   # Specifies whether a service account should be created
+# #   create: true
+# #   # Annotations to add to the service account
+# #   annotations: {}
+# #   # The name of the service account to use.
+# #   # If not set and create is true, a name is generated using the fullname template
+# #   name: ""
+
+# podAnnotations: {}
+
+# podSecurityContext: {}
+#   # fsGroup: 2000
+
+# securityContext: {}
+#   # capabilities:
+#   #   drop:
+#   #   - ALL
+#   # readOnlyRootFilesystem: true
+#   # runAsNonRoot: true
+#   # runAsUser: 1000
+
+# # service:
+# #   type: ClusterIP
+# #   port: 80
+
+# # ingress:
+# #   enabled: false
+# #   className: ""
+# #   annotations: {}
+# #     # kubernetes.io/ingress.class: nginx
+# #     # kubernetes.io/tls-acme: "true"
+# #   hosts:
+# #     - host: chart-example.local
+# #       paths:
+# #         - path: /
+# #           pathType: ImplementationSpecific
+# #   tls: []
+#   #  - secretName: chart-example-tls
+#   #    hosts:
+#   #      - chart-example.local
+
+# resources: {}
+#   # We usually recommend not to specify default resources and to leave this as a conscious
+#   # choice for the user. This also increases chances charts run on environments with little
+#   # resources, such as Minikube. If you do want to specify resources, uncomment the following
+#   # lines, adjust them as necessary, and remove the curly braces after 'resources:'.
+#   # limits:
+#   #   cpu: 100m
+#   #   memory: 128Mi
+#   # requests:
+#   #   cpu: 100m
+#   #   memory: 128Mi
+
+# # autoscaling:
+# #   enabled: false
+# #   minReplicas: 1
+# #   maxReplicas: 100
+# #   targetCPUUtilizationPercentage: 80
+#   # targetMemoryUtilizationPercentage: 80
+
+# # nodeSelector: {}
+
+# # tolerations: []
+selfHosted:
+  enabled: true
+awsHosted:
+  enabled: false
+  efs:
+    id: fs-0f12097ff978fddc8
+azureHosted:
+  enabled: false
+googleHosted:
+  enabled: false
+  nfs:
+    server: nfs-server.default.svc.cluster.local
+    path: "/"
+imagePullSecrets: 
+  - name: myregistrykey
+nodeSelector: {}
+resources: {}
+affinity: 
+  nodeAffinity:
+    requiredDuringSchedulingIgnoredDuringExecution:
+      nodeSelectorTerms:
+      - matchExpressions:
+        - key: node-role.kubernetes.io/control-plane
+          operator: NotIn
+          values:
+          - "true"
+s3BucketRepository: test-aivhub
+aws:
+  accessKey: AKIAUY6NE7ICNPKXOAV3
+  secretKey: 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
+  region: ap-south-1
+storageClass: "longhorn"
+backup:
+  enabled: true
+  schedule: "0 0 * * 0"
+  aws:
+    s3BucketName: test-aivhub
+postgresRestore:
+  enabled: true
+  s3BucketDumpName: test-aivhub
+  dumpFilePath: /metadata
+  dumpFileName: metadata-postgres.pgdump
+ingress: 
+  ingressClassName: nginx
+  annotations:
+    cert-manager.io/cluster-issuer: "letsencrypt-prod"
+    acme.cert-manager.io/http01-edit-in-place: "true"
+core:
+  resources: {}
+  replicaCount: 1
+  image:
+    tag: core
+    pullPolicy: Always
+  service:
+    type: ClusterIP
+
+metadata:
+  resources: {}
+  replicaCount: 1
+  persistence:
+    accessMode: ReadWriteMany
+    storageSize: 1Gi
+  image:
+    tag: 13-alpine
+    pullPolicy: Always
+  service:
+    type: ClusterIP
+
+aivsecuritypostgres:
+  # Specifies whether a aivsecuritypostgres should be created
+  enabled: true
+  resources: {}
+  replicaCount: 1
+  image:
+    tag: aivsecuritypostgres
+    pullPolicy: Always
+  service:
+    type: ClusterIP
+  ingress:
+    enabled: true
+    host: app.ai.mydocubank.com
+    path: /
+    pathType: Prefix
+    secretName: aivsecuritydb-tls
+
+aivsecuritykeycloak:
+  # Specifies whether a aivsecuritykeycloak should be created
+  enabled: false
+  resources: {}
+  replicaCount: 1
+  image:
+    tag: 
+    pullPolicy: Always
+  service:
+    type: ClusterIP
+  ingress:
+    enabled: true
+    host: security.ai.mydocubank.com
+    path: /
+    pathType: Prefix
+    secretName: aivkeycloak-tls
+
+aivbirt:
+  resources: {}
+  replicaCount: 1
+  image:
+    tag: breport
+    pullPolicy: Always
+  service:
+    type: ClusterIP
+
+aivdata:
+  resources: {}
+  replicaCount: 1
+  image:
+    tag: aivdata
+    pullPolicy: Always
+  service:
+    type: ClusterIP
+  
+aivjasper:
+  resources: {}
+  replicaCount: 1
+  image:
+    tag: jreport
+    pullPolicy: Always
+  service:
+    type: ClusterIP
+
+aivpentaho:
+  resources: {}
+  replicaCount: 1
+  image:
+    tag: preport
+    pullPolicy: Always
+  service:
+    type: ClusterIP
+
+gateway:
+  resources: {} 
+  replicaCount: 1
+  image:
+    tag: gateway
+    pullPolicy: Always
+  service:
+    type: ClusterIP
+  ingress:
+    enabled: true
+    host: gateway.ai.mydocubank.com
+    path: /
+    pathType: Prefix
+    secretName: gateway-tls
+
+logs:
+  persistence:
+    accessMode: ReadWriteMany
+    storageSize: 1Gi
+
+repository:
+  persistence:
+    accessMode: ReadWriteMany
+    storageSize: 2Gi
+
+postgres:
+  Password: root
+  User: postgres
+  Db: postgres
+
+cert-manager:
+  enabled: false
+  installCRDs: false
+  namespace: cert-manager
+  startupapicheck:
+    timeout: 2m
+  
+
+nginx-ingress-controller:
+  enabled: false
+  namespace: ingress-nginx
+  create-namespace: true
+
+clusterIssuer:
+  enabled: false
+  name: letsencrypt-prod
+  server: https://acme-v02.api.letsencrypt.org/directory
+  email: whoami@jiggyjigs.me
+  privateKeySecretRef:
+    name: letsencrypt-prod
+  ingress:
+    class: traefik

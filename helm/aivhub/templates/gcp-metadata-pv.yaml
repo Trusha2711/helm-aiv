@@ -1,0 +1,18 @@
+{{- if .Values.googleHosted.enabled }}
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  namespace: {{ .Release.Namespace }}
+  name: {{ template "aivhub.fullname" . }}-pv-metadata
+  annotations:
+    "helm.sh/hook": pre-install
+    "helm.sh/hook-weight": "-9"
+spec:
+  capacity:
+    storage: {{ .Values.metadata.persistence.storageSize }}
+  accessModes:
+    - {{ .Values.metadata.persistence.accessMode }}
+  nfs:
+    server: {{ .Values.googleHosted.nfs.server }}
+    path: {{ .Values.googleHosted.nfs.path }}
+{{- end -}}
