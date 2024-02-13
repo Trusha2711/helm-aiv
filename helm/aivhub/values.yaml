@@ -89,7 +89,7 @@ azureHosted:
 googleHosted:
   enabled: true
   nfs:
-    server: nfs-server
+    server: nfs-server.default.svc.cluster.local
     path: "/"
 imagePullSecrets: 
   - name: myregistrykey
