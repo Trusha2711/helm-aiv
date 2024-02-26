@@ -80,21 +80,39 @@
 # # tolerations: []
 selfHosted:
   enabled: false
+
 awsHosted:
-  enabled: false
+  enabled: true
   efs:
-    id: fs-0f12097ff978fddc8
+    id: fs-010ea65126bfe62a2
+
 azureHosted:
   enabled: false
+
 googleHosted:
-  enabled: true
+  enabled: false
   nfs:
     server: nfs-server.default.svc.cluster.local
     path: "/"
+
 imagePullSecrets: 
   - name: myregistrykey
+
+extraEnv:
+  AIV_REPO: /opt/repository
+  IMG_LOCATION: /opt/repository/images
+  AIV_SECURITY_CLASS: com.simple.services.SimpleAuthImpl
+  AIV_DELIVERY: /opt/repository/delivery
+  CONFIG_FILE: /opt/repository/econfig/application.yml
+  SECURITY_DATASOURCE_URL: jdbc:postgresql://aivhub-metadata.lb-test:5432/aiv_security?currentSchema=security
+  SECURITY_DATASOURCE_USER: postgres
+  SECURITY_DATASOURCE_PASSWORD: root
+  AIV_LOGS: /opt/logs
+
 nodeSelector: {}
+
 resources: {}
+
 affinity: 
   nodeAffinity:
     requiredDuringSchedulingIgnoredDuringExecution:
@@ -104,27 +122,38 @@ affinity:
           operator: NotIn
           values:
           - "true"
-s3BucketRepository: test-aivhub
+
+#s3BucketRepository: test-aivhub
+defaultRepository:
+  awsCommand: aws --endpoint-url  https://eu2.contabostorage.com s3 sync s3://devbucket/repository/ /opt/repository
+
 aws:
-  accessKey: AKIAUY6NE7ICNPKXOAV3
-  secretKey: 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
-  region: ap-south-1
-storageClass: "longhorn"
+  accessKey: bb72bea7dfab15d961a637411ecdd53c
+  secretKey: 5f5a124987f47e8c16af7c3715ca87cf
+  region: eu2
+
+storageClass: "efs-sc"
+
 backup:
   enabled: true
   schedule: "0 0 * * 0"
-  aws:
-    s3BucketName: test-aivhub
+  repository:
+    awsCommand: aws --endpoint-url  https://eu2.contabostorage.com s3 sync /opt/repository/ s3://devbucket/repository-backup/
+  metadata:
+    awsCommand: aws --endpoint-url  https://eu2.contabostorage.com s3 sync /backup/ s3://devbucket/metadata/
+
 postgresRestore:
-  enabled: true
+  enabled: false
   s3BucketDumpName: test-aivhub
   dumpFilePath: /metadata
   dumpFileName: metadata-postgres.pgdump
+
 ingress: 
-  ingressClassName: nginx
+  ingressClassName: traefik
   annotations:
     cert-manager.io/cluster-issuer: "letsencrypt-prod"
     acme.cert-manager.io/http01-edit-in-place: "true"
+
 core:
   resources: {}
   replicaCount: 1
